@@ -1,26 +1,28 @@
 "use client";
 import React from "react";
-import { Button, Col, Divider, Form, Input, notification, Row } from "antd";
+import { Button, Col, Divider, Form, Input, message, notification, Row } from "antd";
 import { ArrowLeftOutlined } from "@ant-design/icons";
 import Link from "next/link";
 import { sendRequest } from "@/utils/api";
 import { useRouter } from "next/navigation";
 
-const Register = () => {
+const Verify = (props: any) => {
+  const { id } = props;
   const router = useRouter();
 
   const onFinish = async (values: any) => {
-    const { email, password, name } = values;
+    const { _id, code } = values;
     const res = await sendRequest<IBackendRes<any>>({
       method: "POST",
-      url: `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/auth/register`,
-      body: { email, password, name },
+      url: `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/auth/check-code`,
+      body: { _id, code },
     });
     if (res?.data) {
-      notification.success({ message: "Đăng ký thành công" });
-      router.push(`/verify/${res?.data?._id}`);
+      //   notification.success({ message: "Đăng ký thành công" });
+      message.success("Kích hoạt tài khoản thành công");
+      router.push(`/auth/login`);
     } else {
-      notification.error({ message: "Đăng ký thất bại", description: res?.message });
+      notification.error({ message: "Verify error", description: res?.message });
     }
   };
 
@@ -35,35 +37,24 @@ const Register = () => {
             borderRadius: "5px",
           }}
         >
-          <legend>Đăng Ký Tài Khoản</legend>
+          <legend>Kích hoạt tài khoản</legend>
           <Form name="basic" onFinish={onFinish} autoComplete="off" layout="vertical">
+            <Form.Item label="Id" name="_id" initialValue={id} hidden>
+              <Input disabled />
+            </Form.Item>
+            <div>Mã code đã được gửi tới email đăng ký, vui lòng kiểm tra email.</div>
+            <Divider />
+
             <Form.Item
-              label="Email"
-              name="email"
+              label="Code"
+              name="code"
               rules={[
                 {
                   required: true,
-                  message: "Please input your email!",
+                  message: "Please input your code!",
                 },
               ]}
             >
-              <Input />
-            </Form.Item>
-
-            <Form.Item
-              label="Password"
-              name="password"
-              rules={[
-                {
-                  required: true,
-                  message: "Please input your password!",
-                },
-              ]}
-            >
-              <Input.Password />
-            </Form.Item>
-
-            <Form.Item label="Name" name="name">
               <Input />
             </Form.Item>
 
@@ -86,4 +77,4 @@ const Register = () => {
   );
 };
 
-export default Register;
+export default Verify;
