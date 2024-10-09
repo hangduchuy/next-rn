@@ -18,7 +18,6 @@ const Verify = (props: any) => {
       body: { _id, code },
     });
     if (res?.data) {
-      //   notification.success({ message: "Đăng ký thành công" });
       message.success("Kích hoạt tài khoản thành công");
       router.push(`/auth/login`);
     } else {

@@ -6,51 +6,54 @@ import { SmileOutlined, SolutionOutlined, UserOutlined } from "@ant-design/icons
 import { useEffect, useState } from "react";
 import { sendRequest } from "@/utils/api";
 
-const ModalReactive = (props: any) => {
-  const { isModalOpen, setIsModalOpen, userEmail } = props;
+const ModalChangePassword = (props: any) => {
+  const { isModalOpen, setIsModalOpen } = props;
   const [current, setCurrent] = useState(0);
   const [form] = Form.useForm();
-  const [userId, setUserId] = useState("");
+  const [userEmail, setUserEmail] = useState("");
 
   const hasMounted = useHasMounted();
-
-  useEffect(() => {
-    if (userEmail) {
-      form.setFieldsValue({ email: userEmail });
-    }
-  }, [userEmail, form]);
 
   if (!hasMounted) return <></>;
 
   const onFinishStep0 = async (values: any) => {
     const { email } = values;
     const res = await sendRequest<IBackendRes<any>>({
+      url: `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/auth/retry-password`,
       method: "POST",
-      url: `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/auth/retry-active`,
       body: {
         email,
       },
     });
 
     if (res?.data) {
-      setUserId(res.data._id);
+      setUserEmail(res?.data?.email);
       setCurrent(1);
     } else {
       notification.error({
-        message: "Call API error",
-        description: res.message,
+        message: "Call APIs error",
+        description: res?.message,
       });
     }
   };
 
   const onFinishStep1 = async (values: any) => {
-    const { code } = values;
+    const { code, password, confirmPassword } = values;
+    if (password !== confirmPassword) {
+      notification.error({
+        message: "Invalid password",
+        description: "Password and confirm password not match",
+      });
+      return;
+    }
     const res = await sendRequest<IBackendRes<any>>({
+      url: `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/auth/change-password`,
       method: "POST",
-      url: `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/auth/check-code`,
       body: {
         code,
-        _id: userId,
+        password,
+        confirmPassword,
+        email: userEmail,
       },
     });
 
@@ -63,13 +66,21 @@ const ModalReactive = (props: any) => {
       });
     }
   };
+
+  const restModal = () => {
+    setIsModalOpen(false);
+    setCurrent(0);
+    setUserEmail("");
+    form.resetFields();
+  };
+
   return (
     <>
       <Modal
-        title="Kích hoạt tài khoản"
+        title="Quên mật khẩu"
         open={isModalOpen}
-        onOk={() => setIsModalOpen(false)}
-        onCancel={() => setIsModalOpen(false)}
+        onOk={restModal}
+        onCancel={restModal}
         maskClosable={false}
         footer={null}
       >
@@ -77,7 +88,7 @@ const ModalReactive = (props: any) => {
           current={current}
           items={[
             {
-              title: "Login",
+              title: "Email",
               // status: 'finish',
               icon: <UserOutlined />,
             },
@@ -86,8 +97,10 @@ const ModalReactive = (props: any) => {
               // status: 'finish',
               icon: <SolutionOutlined />,
             },
+
             {
               title: "Done",
+              // status: 'wait',
               icon: <SmileOutlined />,
             },
           ]}
@@ -95,15 +108,15 @@ const ModalReactive = (props: any) => {
         {current === 0 && (
           <>
             <div style={{ margin: "20px 0" }}>
-              <p>Tài khoản của bạn chưa được kích hoạt</p>
+              <p>Để thực hiện thay đổi mật khẩu, vui lòng nhập email tài khoản của bạn.</p>
             </div>
-            <Form name="verify" onFinish={onFinishStep0} autoComplete="off" layout="vertical" form={form}>
+            <Form name="change-password" onFinish={onFinishStep0} autoComplete="off" layout="vertical" form={form}>
               <Form.Item label="" name="email">
-                <Input disabled value={userEmail} />
+                <Input />
               </Form.Item>
               <Form.Item>
                 <Button type="primary" htmlType="submit">
-                  Resend
+                  Submit
                 </Button>
               </Form.Item>
             </Form>
@@ -113,10 +126,10 @@ const ModalReactive = (props: any) => {
         {current === 1 && (
           <>
             <div style={{ margin: "20px 0" }}>
-              <p>Vui lòng nhập mã xác nhận</p>
+              <p>Vui lòng thực hiện đổi mật khẩu</p>
             </div>
 
-            <Form name="verify2" onFinish={onFinishStep1} autoComplete="off" layout="vertical">
+            <Form name="change-pass-2" onFinish={onFinishStep1} autoComplete="off" layout="vertical">
               <Form.Item
                 label="Code"
                 name="code"
@@ -129,9 +142,36 @@ const ModalReactive = (props: any) => {
               >
                 <Input />
               </Form.Item>
+
+              <Form.Item
+                label="Mật khẩu mới"
+                name="password"
+                rules={[
+                  {
+                    required: true,
+                    message: "Please input your new password!",
+                  },
+                ]}
+              >
+                <Input.Password />
+              </Form.Item>
+
+              <Form.Item
+                label="Xác nhận mật khẩu"
+                name="confirmPassword"
+                rules={[
+                  {
+                    required: true,
+                    message: "Please input your new password!",
+                  },
+                ]}
+              >
+                <Input.Password />
+              </Form.Item>
+
               <Form.Item>
                 <Button type="primary" htmlType="submit">
-                  Active
+                  Confirm
                 </Button>
               </Form.Item>
             </Form>
@@ -140,7 +180,7 @@ const ModalReactive = (props: any) => {
 
         {current === 2 && (
           <div style={{ margin: "20px 0" }}>
-            <p>Tài khoản của bạn đã được kích hoạt thành công. Vui lòng đăng nhập lại</p>
+            <p>Tải khoản của bạn đã được thay đổi mật khẩu thành công. Vui lòng đăng nhập lại</p>
           </div>
         )}
       </Modal>
@@ -148,4 +188,4 @@ const ModalReactive = (props: any) => {
   );
 };
 
-export default ModalReactive;
+export default ModalChangePassword;
